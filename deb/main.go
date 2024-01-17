@@ -7,10 +7,10 @@ import (
 
 type Deb struct{}
 
-// example usage: "call build --binaries $PWD/example_app/bin/example_app --architecture amd64 --package-name 'example' --version '0.0.1' --maintainer 'Nic Jackson' --description 'build'"
+// example usage: "call build --directory $PWD/example_app/files --architecture amd64 --package-name 'example' --version '0.0.1' --maintainer 'Nic Jackson' --description 'build'"
 func (m *Deb) Build(
 	ctx context.Context,
-	binaries *File,
+	files *Directory,
 	architecture string,
 	packageName string,
 	version string,
@@ -34,11 +34,12 @@ func (m *Deb) Build(
 		description,
 	)
 
-	packageDirectory := dag.Directory().WithNewDirectory(packageName)
-	packageDirectory = packageDirectory.WithNewFile("DEBIAN/control", controlContents)
-	packageDirectory = packageDirectory.WithFile("bin/example", binaries)
+	// add the control file to the package directory
+	packageDirectory := files.WithNewFile("DEBIAN/control", controlContents)
 
-	return dag.Container().
+	platform := Platform(fmt.Sprintf("linux/%s", architecture))
+
+	return dag.Container(ContainerOpts{Platform: platform}).
 		From("debian:latest").
 		WithMountedDirectory("/working/package", packageDirectory).
 		WithWorkdir("/working").
